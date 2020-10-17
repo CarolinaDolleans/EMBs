@@ -1,0 +1,180 @@
+---
+title: "Codigo artigo EMBs"
+author: "Carolina Gabriela Dolléans"
+date: "17/10/2020"
+output: github_document
+---
+
+```{r setup, include=FALSE, echo = FALSE, warning = FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Primeiro, eu vou deixar aqui as livrarias que utilizei:
+
+```{r, echo = FALSE, warning = FALSE}
+library(tidyverse)
+library(haven)
+library(writexl)
+library(dplyr)
+library(readxl)
+library(scales)
+```
+
+
+# V-DEM
+
+A seguir, eu vou começar a limpar o banco do V-DEM para deixar apenas as variáveis que me interessam:
+
+Eu peguei o décimo banco do V-Dem na sua versão Country-Date: V-Dem no endereço seguinte :
+https://www.v-dem.net/en/data/data-version-10/
+
+Como o banco é muito grande então ele não pode ser colocado no GitHub. Eu deixei apenas o banco VDem_filtrado no meu repositório, porém, deixei o código com o qual eu filtrei esse banco abaixo:
+
+```{r}
+VDem <- read_csv("VDemv10.csv")
+
+VDem_filtrado <- VDem %>%
+  select(country_name, country_id, v2elembaut_mean, year) %>%
+  filter(year == 2015,
+           !v2elembaut_mean %in% NA)
+
+
+VDem_filtrado <- aggregate(VDem_filtrado$v2elembaut_mean ~ 
+                             VDem_filtrado$country_name, data = VDem_filtrado, FUN = mean)
+
+
+colnames(VDem_filtrado)[1] <- "country_name"
+
+colnames(VDem_filtrado)[2] <- "autonomia"
+```
+
+A seguir, eu vou criar um gráfico para ver como a autonomia é distribuida entre os países do mundo:
+
+```{r}
+ggplot(VDem_filtrado, aes(autonomia, ..count../sum(..count..))) +
+  geom_density(adjust = 0.5) +
+  scale_y_continuous(labels = percent) +
+  geom_vline(aes(xintercept = mean(autonomia, na.rm = T))) +
+  theme_minimal() +
+  labs(title = "Autonomia dos países do V-DEM", subtitle = "Gráfico 1",
+    x = "Autonomia", y = "Porcentagem",
+    caption = "Fonte: elaboração da autora")
+```
+
+
+# EMS e ELECT filtrados
+
+A seguir, eu vou invocar os bancos que criei no excel a partir dos bancos EMS e ELECT. 
+Eu vou deixá-los no meu github em acesso livre.
+
+# Questões 1 a 8
+
+Para criar esse banco, eu criei um índice aditivo transformado em porcentagem a partir das respostas das perguntas que me interessavam como explicado no meu artigo. Chamei esse índice de porcentagem.
+
+```{r}
+EMS_ELECT_filtrado <- read_excel("EMS_ELECT_filtrado.xlsx")
+
+Banco <- merge(EMS_ELECT_filtrado, 
+               VDem_filtrado, by ="country_name")
+```
+
+Primeiro, eu fiz um gráfico para podermos ver a distribuição das variáveis porcentagem e autonomia entres os países dessa amostra. 
+
+Distribuição da autonomia:
+
+```{r}
+ggplot(Banco, aes(autonomia, ..count../sum(..count..))) +
+  geom_density(adjust = 0.5) +
+  scale_y_continuous(labels = percent) +
+  geom_vline(aes(xintercept = mean(autonomia, na.rm = T))) +
+  theme_minimal() +
+  labs(title = "Autonomia dos países da amostra 1", subtitle = "Gráfico 1",
+    x = "Autonomia", y = "Porcentagem",
+    caption = "Fonte: elaboração da autora")
+```
+
+Distribuição do índice:
+
+```{r}
+ggplot(Banco, aes(indice_1a8, ..count../sum(..count..))) +
+  geom_density(adjust = 0.5) +
+  scale_y_continuous(labels = percent) +
+  geom_vline(aes(xintercept = mean(autonomia, na.rm = T))) +
+  theme_minimal() +
+  labs(title = "Índice dos países da amostra 1", subtitle = "Gráfico 3",
+    x = "Índice", y = "Porcentagem",
+    caption = "Fonte: elaboração da autora")
+```
+
+
+A seguir, eu fiz um gráfico para podermos observar a interação entre essas duas variáveis:
+
+```{r}
+ggplot(Banco, aes(autonomia, indice_1a8)) +
+  geom_point(alpha = 0.5) +
+  theme_minimal() +
+  labs(title = "Autonomia e índice da amostra 1", subtitle = "Gráfico 4",
+    x = "Autonomia", y = "Índice dos controles",
+    caption = "Fonte: elaboração da autora")
+```
+
+
+Enfim, eu testei a correlação entre meu índice e a variável que indica a autonomia dos EMBs do V-DEM:
+
+```{r}
+cor.test(Banco$autonomia, Banco$indice_1a8)
+```
+
+Minhas análises sobre esses resultados estão no artigo.
+
+
+# Questão 9
+
+A última pergunta que selecionei não podia ser adicionada às outras entao decidi tratá-la de maneira a parte. Essa pergunta tem como objetivo saber qual é a porcentagem de leis e regras eleitorais produzidas pelo EMB que são inspiradas por outras entidades da sociedade. Escolhi as entidades que me interessavam (mídia, judiciário e sociedade civil) e as adicionei.
+
+```{r}
+questao9 <- read_excel("questao9.xlsx")
+
+Banco_2 <- merge(questao9, 
+               VDem_filtrado, by ="country_name")
+```
+
+
+Distribuição da autonomia dos países da amostra 2:
+
+```{r}
+ggplot(Banco_2, aes(autonomia, ..count../sum(..count..))) +
+  geom_density(adjust = 0.5) +
+  scale_y_continuous(labels = percent) +
+  geom_vline(aes(xintercept = mean(autonomia, na.rm = T))) +
+  theme_minimal() +
+  labs(title = "Autonomia dos países da amostra 2", subtitle = "Gráfico 3",
+    x = "Autonomia", y = "Porcentagem",
+    caption = "Fonte: elaboração da autora")
+```
+
+A seguir, eu fiz um gráfico para podermos observar a interação entre essas duas variáveis.
+
+
+```{r}
+ggplot(Banco_2, aes(autonomia, controles)) +
+  geom_point(alpha = 0.5) +
+  theme_minimal() +
+  labs(title = "Autonomia e controles da amostra 2", subtitle = "Gráfico 5",
+    x = "Autonomia", y = "Controles da amostra 2",
+    caption = "Fonte: elaboração da autora")
+```
+
+
+Enfim, eu testei a correlação entre minha mean_percents e a variável que indica a autonomia dos EMBs do V-DEM. 
+
+```{r}
+cor.test(Banco_2$controles, Banco_2$autonomia)
+```
+
+
+
+
+
+
+
